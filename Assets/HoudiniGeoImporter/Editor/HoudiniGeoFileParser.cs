@@ -336,21 +336,14 @@ namespace NmrgLibrary.HoudiniGeoImporter
             {
                 // Primitive [[Header], [Body]]
                 //[
-                //	[
-                //		"type","run",
-                //		"runtype","Poly",
-                //		"varyingfields",["vertex"],
-                //		"uniformfields",{
-                //		"closed":true
-                //		}
-                //	],
-                //	[
-                //		[[0,1,2,3]],
-                //		[[4,5,6,7]],
-                //		[[8,9,10,11]],
-                //		[[12,13,14,15]],
-                //		...
-                //	]
+                //    [
+                //       "type","Polygon_run"
+                //    ],
+                //    [
+                //        "startvertex",0,
+                //        "nprimitives",6,
+                //        "nvertices_rle",[4,6]
+                //    ]
                 //]
                 
                 JToken[] childBlockTokens = primitiveToken.Children().ToArray();
@@ -360,38 +353,44 @@ namespace NmrgLibrary.HoudiniGeoImporter
                 // Parse header
                 Dictionary<string, JToken> headerDict = ArrayKeyValueToDictionary(headerToken.Children().ToArray());
                 string type = headerDict["type"].Value<string>();
-
+                
                 // Parse RunType primitives
-                if (type == "run")
-                {
-                    string runType = headerDict["runtype"].Value<string>();
-                    switch (runType)
-                    {
-                    case "Poly":
-                        geo.polyPrimitives.AddRange(ParsePolyPrimitiveGroup(headerDict, bodyToken, primIdCounter));
-                        break;
-                    case "BezierCurve":
-                        //geo.bezierCurvePrimitives.AddRange(primitives);
-                        break;
-                    case "NURBCurve":
-                        //geo.nurbCurvePrimitives.AddRange(primitives);
-                        break;
-                    }
+                if (type == "Polygon_run"){
+                    var bodyDict = ArrayKeyValueToDictionary(bodyToken.Children().ToArray());
+                    geo.polyPrimitives.AddRange(ParsePolyPrimitiveGroup(bodyDict, primIdCounter));
                 }
             }
         }
 
-        private static PolyPrimitive[] ParsePolyPrimitiveGroup(Dictionary<string, JToken> headerDict, JToken bodyToken, int primIdCounter)
+        private static PolyPrimitive[] ParsePolyPrimitiveGroup(Dictionary<string, JToken> bodyDict, int primIdCounter)
         {
-            return bodyToken.Children().Select(primToken => {
-                var primChildTokens = primToken.Children().ToArray();
-
+            var startvertex = bodyDict["startvertex"].Value<int>();
+            var nprimitives = bodyDict["nprimitives"].Value<int>();
+            var nvertices = new List<int>();
+            if(bodyDict.ContainsKey("nvertices"))
+            {
+                nvertices = bodyDict["nvertices"].Values<int>().ToList();
+            }
+            else if (bodyDict.ContainsKey("nvertices_rle"))
+            {
+                nvertices = bodyDict["nvertices_rle"].Values<int>().ToList();
+                nvertices = nvertices.Where((_, index) => index % 2 == 0)
+                    .SelectMany((value, index) => Enumerable.Repeat(value, nvertices[index * 2 + 1]))
+                    .ToList();
+            }
+            
+            var currentVertex = startvertex;
+            var polyPrims = new PolyPrimitive[nprimitives];
+            for (int i = 0; i < nprimitives; i++)
+            {
                 var prim = new PolyPrimitive();
                 prim.id = primIdCounter++;
-                prim.indices = primChildTokens[0].Values<int>().ToArray();
+                prim.indices = Enumerable.Range(currentVertex, nvertices[i]).ToArray();
                 prim.triangles = TriangulateNGon(prim.indices);
-                return prim;
-            }).ToArray();
+                currentVertex += nvertices[i];
+                polyPrims[i] = prim;
+            }
+            return polyPrims;
         }
 
         private static int[] TriangulateNGon(int[] indices)
