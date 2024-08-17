@@ -30,17 +30,17 @@ namespace NmrgLibrary.HoudiniGeoImporter
             var houdiniGeo = HoudiniGeoFileParser.Parse(ctx.assetPath);
             houdiniGeo.name = Path.GetFileNameWithoutExtension(ctx.assetPath);
             houdiniGeo.importSettings.reverseWinding = reverseWinding;
-            // houdiniGeo.posAttribName    = posAttribName;
-            // houdiniGeo.normalAttribName = normalAttribName;
-            // houdiniGeo.colorAttribName  = colorAttribName;
-            // houdiniGeo.uv1AttribName    = uv1AttribName;
-            // houdiniGeo.uv2AttribName    = uv2AttribName;
-            // houdiniGeo.uv3AttribName    = uv3AttribName;
-            // houdiniGeo.uv4AttribName    = uv4AttribName;
-            // houdiniGeo.uv5AttribName    = uv5AttribName;
-            // houdiniGeo.uv6AttribName    = uv6AttribName;
-            // houdiniGeo.uv7AttribName    = uv7AttribName;
-            // houdiniGeo.uv8AttribName    = uv8AttribName;
+            houdiniGeo.POS_ATTR_NAME    = posAttribName;
+            houdiniGeo.NORMAL_ATTR_NAME = normalAttribName;
+            houdiniGeo.COLOR_ATTR_NAME  = colorAttribName;
+            houdiniGeo.UV1_ATTR_NAME    = uv1AttribName;
+            houdiniGeo.UV2_ATTR_NAME    = uv2AttribName;
+            houdiniGeo.UV3_ATTR_NAME    = uv3AttribName;
+            houdiniGeo.UV4_ATTR_NAME    = uv4AttribName;
+            houdiniGeo.UV5_ATTR_NAME    = uv5AttribName;
+            houdiniGeo.UV6_ATTR_NAME    = uv6AttribName;
+            houdiniGeo.UV7_ATTR_NAME    = uv7AttribName;
+            houdiniGeo.UV8_ATTR_NAME    = uv8AttribName;
             
             attribNames = houdiniGeo.GetAttributeNames();
             

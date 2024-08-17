@@ -188,8 +188,8 @@ namespace NmrgLibrary.HoudiniGeoImporter
         public string UV6_ATTR_NAME = "uv6";
         public string UV7_ATTR_NAME = "uv7";
         public string UV8_ATTR_NAME = "uv8";
-        
-        public HoudiniGeoImportSettings importSettings;
+
+        public HoudiniGeoImportSettings importSettings = new HoudiniGeoImportSettings();
         public string name;
         
         public string fileVersion;

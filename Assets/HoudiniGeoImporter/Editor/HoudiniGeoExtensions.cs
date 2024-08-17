@@ -42,13 +42,14 @@ namespace NmrgLibrary.HoudiniGeoImporter
         public static List<string> GetAttributeNames(this HoudiniGeo geo)
         {
             return geo.attributes
-                .Where(attrib => attrib.owner is HoudiniGeoAttributeOwner.Vertex or HoudiniGeoAttributeOwner.Vertex)
+                .Where(attrib => attrib.owner == HoudiniGeoAttributeOwner.Point || attrib.owner == HoudiniGeoAttributeOwner.Vertex)
                 .Select(attrib => attrib.name)
                 .ToList();
         }
 
-        public static void ToUnityMesh(this HoudiniGeo geo, Mesh mesh)
+        private static void ToUnityMesh(this HoudiniGeo geo, Mesh mesh)
         {
+            // polyPrimitivesが0ならreturn
             if (geo.polyPrimitives.Count == 0)
             {
                 Debug.LogError("Cannot convert HoudiniGeo to Mesh because geo has no PolyPrimitives");
@@ -56,6 +57,7 @@ namespace NmrgLibrary.HoudiniGeoImporter
             }
 
             mesh.name = geo.name;
+            
             int[] indices = geo.polyPrimitives.SelectMany(p => p.indices).ToArray();
             int vertexCount = indices.Length;
             if (vertexCount > 65000)
@@ -63,91 +65,52 @@ namespace NmrgLibrary.HoudiniGeoImporter
                 throw new Exception(string.Format("Vertex count ({0}) exceeds limit of {1}!", geo.vertexCount, 65000));
             }
 
-            // Check if position attribute P exists
+            // Check if position attribute exists
             HoudiniGeoAttribute posAttr = null;
             if (!geo.TryGetAttribute(geo.POS_ATTR_NAME, HoudiniGeoAttributeType.Float, out posAttr))
             {
                 Debug.LogWarning("HoudiniGEO has no Position attribute on points or vertices");
             }
-
-            // Get Vertex/Point positions
-            Vector3[] posAttrValues = null;
-            posAttr.GetValues(out posAttrValues);
             
-            // Get uv attribute values
-            HoudiniGeoAttribute uvAttr = null;
-            Vector4[] uvAttrValues = null;
-            if (geo.TryGetAttribute(geo.UV1_ATTR_NAME, HoudiniGeoAttributeType.Float, out uvAttr))
-            {
-                uvAttr.GetValues(out uvAttrValues);
-            }
+            GetAttrib(geo, geo.POS_ATTR_NAME, out posAttr, out Vector3[] posAttrValues);
+            GetAttrib(geo, geo.UV1_ATTR_NAME, out HoudiniGeoAttribute uvAttr, out Vector4[] uvAttrValues);
+            GetAttrib(geo, geo.UV1_ATTR_NAME, out HoudiniGeoAttribute uv2Attr, out Vector4[] uv2AttrValues);
+            GetAttrib(geo, geo.UV1_ATTR_NAME, out HoudiniGeoAttribute uv3Attr, out Vector4[] uv3AttrValues);
+            GetAttrib(geo, geo.UV1_ATTR_NAME, out HoudiniGeoAttribute uv4Attr, out Vector4[] uv4AttrValues);
+            GetAttrib(geo, geo.UV1_ATTR_NAME, out HoudiniGeoAttribute uv5Attr, out Vector4[] uv5AttrValues);
+            GetAttrib(geo, geo.UV1_ATTR_NAME, out HoudiniGeoAttribute uv6Attr, out Vector4[] uv6AttrValues);
+            GetAttrib(geo, geo.UV1_ATTR_NAME, out HoudiniGeoAttribute uv7Attr, out Vector4[] uv7AttrValues);
+            GetAttrib(geo, geo.UV1_ATTR_NAME, out HoudiniGeoAttribute uv8Attr, out Vector4[] uv8AttrValues);
+            GetAttrib(geo, geo.NORMAL_ATTR_NAME, out HoudiniGeoAttribute normalAttr, out Vector3[] normalAttrValues);
+            GetAttrib(geo, geo.TANGENT_ATTR_NAME, out HoudiniGeoAttribute tangentAttr, out Vector3[] tangentAttrValues);
+            GetAttrib(geo, geo.MATERIAL_ATTR_NAME, out HoudiniGeoAttribute materialAttr, out string[] materialAttributeValues);
+            GetAttrib(geo, geo.COLOR_ATTR_NAME, out HoudiniGeoAttribute colorAttr, out Color[] colorAttrValues);
+            GetAttrib(geo, geo.ALPHA_ATTR_NAME, out HoudiniGeoAttribute alphaAttr, out float[] alphaAttrValues);
             
-            // Get uv2 attribute values
-            HoudiniGeoAttribute uv2Attr = null;
-            Vector4[] uv2AttrValues = null;
-            if (geo.TryGetAttribute(geo.UV2_ATTR_NAME, HoudiniGeoAttributeType.Float, out uv2Attr))
+            if (colorAttr != null && alphaAttr != null && colorAttrValues.Length == alphaAttrValues.Length)
             {
-                uv2Attr.GetValues(out uv2AttrValues);
-            }
-            
-            // Get normal attribute values
-            HoudiniGeoAttribute normalAttr = null;
-            Vector3[] normalAttrValues = null;
-            if (geo.TryGetAttribute(geo.NORMAL_ATTR_NAME, HoudiniGeoAttributeType.Float, out normalAttr))
-            {
-                normalAttr.GetValues(out normalAttrValues);
-            }
-            
-            // Get color attribute values
-            HoudiniGeoAttribute colorAttr = null;
-            Color[] colorAttrValues = null;
-            if (geo.TryGetAttribute(geo.COLOR_ATTR_NAME, HoudiniGeoAttributeType.Float, out colorAttr))
-            {
-                colorAttr.GetValues(out colorAttrValues);
-
-                // Get alpha color values
-                HoudiniGeoAttribute alphaAttr = null;
-                float[] alphaAttrValues = null;
-                if (geo.TryGetAttribute(geo.ALPHA_ATTR_NAME, HoudiniGeoAttributeType.Float, colorAttr.owner, out alphaAttr))
+                for (int i=0; i<colorAttrValues.Length; i++)
                 {
-                    alphaAttr.GetValues(out alphaAttrValues);
-
-                    if (colorAttrValues.Length == alphaAttrValues.Length)
-                    {
-                        for (int i=0; i<colorAttrValues.Length; i++)
-                        {
-                            colorAttrValues[i].a = alphaAttrValues[i];
-                        }
-                    }
+                    colorAttrValues[i].a = alphaAttrValues[i];
                 }
             }
             
-            // Get tangent attribute values
-            HoudiniGeoAttribute tangentAttr = null;
-            Vector3[] tangentAttrValues = null;
-            if (geo.TryGetAttribute(geo.TANGENT_ATTR_NAME, HoudiniGeoAttributeType.Float, out tangentAttr))
-            {
-                tangentAttr.GetValues(out tangentAttrValues);
-            }
-
-            // Get material primitive attribute (Multiple materials result in multiple submeshes)
-            HoudiniGeoAttribute materialAttr = null;
-            string[] materialAttributeValues = null;
-            if (geo.TryGetAttribute(geo.MATERIAL_ATTR_NAME, HoudiniGeoAttributeType.String, HoudiniGeoAttributeOwner.Primitive, out materialAttr))
-            {
-                materialAttr.GetValues(out materialAttributeValues);
-            }
-
             // Create our mesh attribute buffers
             var submeshInfo = new Dictionary<string, List<int>>();
             var positions = new Vector3[vertexCount];
-            var uvs = new Vector2[vertexCount]; // unity doesn't like it when meshes have no uvs
-            var uvs2 = (uv2Attr != null) ? new Vector2[vertexCount] : null;
+            var uvs = new Vector4[vertexCount]; // unity doesn't like it when meshes have no uvs
             var normals = (normalAttr != null) ? new Vector3[vertexCount] : null;
             var colors = (colorAttr != null) ? new Color[vertexCount] : null;
             var tangents = (tangentAttr != null) ? new Vector4[vertexCount] : null;
-
-            // Fill the mesh buffers
+            var uvs2 = (uv2Attr != null) ? new Vector4[vertexCount] : null;
+            var uvs3 = (uv3Attr != null) ? new Vector4[vertexCount] : null;
+            var uvs4 = (uv4Attr != null) ? new Vector4[vertexCount] : null;
+            var uvs5 = (uv5Attr != null) ? new Vector4[vertexCount] : null;
+            var uvs6 = (uv6Attr != null) ? new Vector4[vertexCount] : null;
+            var uvs7 = (uv7Attr != null) ? new Vector4[vertexCount] : null;
+            var uvs8 = (uv8Attr != null) ? new Vector4[vertexCount] : null;
+            
+            // AttributeをVertex Bufferの配列に変換する (Vertex/Point Attributes)
             int[] vertToPoint = geo.pointRefs.ToArray();
             Dictionary<int, int> vertIndexGlobalToLocal = new Dictionary<int, int>();
             for (int i=0; i<vertexCount; ++i)
@@ -156,94 +119,23 @@ namespace NmrgLibrary.HoudiniGeoImporter
                 int pointIndex = vertToPoint[vertIndex];
                 vertIndexGlobalToLocal.Add(vertIndex, i);
                 
-                // Position
-                switch (posAttr.owner)
-                {
-                case HoudiniGeoAttributeOwner.Vertex:
-                    positions[i] = posAttrValues[vertIndex];
-                    break;
-                case HoudiniGeoAttributeOwner.Point:
-                    positions[i] = posAttrValues[pointIndex];
-                    break;
-                }
+                positions[i] = AttribToBuffer(posAttr, posAttrValues, vertIndex, pointIndex);
+                uvs[i] = AttribToBuffer(uvAttr, uvAttrValues, vertIndex, pointIndex);
                 
-                // UV1
-                if (uvAttr != null)
-                {
-                    switch (uvAttr.owner)
-                    {
-                    case HoudiniGeoAttributeOwner.Vertex:
-                        uvs[i] = uvAttrValues[vertIndex];
-                        break;
-                    case HoudiniGeoAttributeOwner.Point:
-                        uvs[i] = uvAttrValues[pointIndex];
-                        break;
-                    }
-                }
-                else
-                {
-                    // Unity likes to complain when a mesh doesn't have any UVs so we'll just add a default
-                    uvs[i] = Vector2.zero;
-                }
-                
-                // UV2
-                if (uv2Attr != null)
-                {
-                    switch (uv2Attr.owner)
-                    {
-                    case HoudiniGeoAttributeOwner.Vertex:
-                        uvs2[i] = uv2AttrValues[vertIndex];
-                        break;
-                    case HoudiniGeoAttributeOwner.Point:
-                        uvs2[i] = uv2AttrValues[pointIndex];
-                        break;
-                    }
-                }
-                
-                // Normals
-                if (normalAttr != null)
-                {
-                    switch (normalAttr.owner)
-                    {
-                    case HoudiniGeoAttributeOwner.Vertex:
-                        normals[i] = normalAttrValues[vertIndex];
-                        break;
-                    case HoudiniGeoAttributeOwner.Point:
-                        normals[i] = normalAttrValues[pointIndex];
-                        break;
-                    }
-                }
-                
-                // Colors
-                if (colorAttr != null)
-                {
-                    switch (colorAttr.owner)
-                    {
-                    case HoudiniGeoAttributeOwner.Vertex:
-                        colors[i] = colorAttrValues[vertIndex];
-                        break;
-                    case HoudiniGeoAttributeOwner.Point:
-                        colors[i] = colorAttrValues[pointIndex];
-                        break;
-                    }
-                }
-                
-                // Fill tangents info
-                if (tangentAttr != null)
-                {
-                    switch (tangentAttr.owner)
-                    {
-                    case HoudiniGeoAttributeOwner.Vertex:
-                        tangents[i] = tangentAttrValues[vertIndex];
-                        break;
-                    case HoudiniGeoAttributeOwner.Point:
-                        tangents[i] = tangentAttrValues[pointIndex];
-                        break;
-                    }
-                }
+                if (normalAttr != null) normals[i] = AttribToBuffer(normalAttr, normalAttrValues, vertIndex, pointIndex);
+                if (tangentAttr != null) tangents[i] = AttribToBuffer(tangentAttr, tangentAttrValues, vertIndex, pointIndex);
+                if (colorAttr != null) colors[i] = AttribToBuffer(colorAttr, colorAttrValues, vertIndex, pointIndex);
+                if (uv2Attr != null) uvs2[i] = AttribToBuffer(uv2Attr, uv2AttrValues, vertIndex, pointIndex);
+                if (uv3Attr != null) uvs3[i] = AttribToBuffer(uv3Attr, uv3AttrValues, vertIndex, pointIndex);
+                if (uv4Attr != null) uvs4[i] = AttribToBuffer(uv4Attr, uv4AttrValues, vertIndex, pointIndex);
+                if (uv5Attr != null) uvs5[i] = AttribToBuffer(uv5Attr, uv5AttrValues, vertIndex, pointIndex);
+                if (uv6Attr != null) uvs6[i] = AttribToBuffer(uv6Attr, uv6AttrValues, vertIndex, pointIndex);
+                if (uv7Attr != null) uvs7[i] = AttribToBuffer(uv7Attr, uv7AttrValues, vertIndex, pointIndex);
+                if (uv8Attr != null) uvs8[i] = AttribToBuffer(uv8Attr, uv8AttrValues, vertIndex, pointIndex);
             }
 
-            // Get primitive attribute values and created submeshes
+            // AttributeをVertex Bufferの配列に変換する (Primitive Attributes)
+            // Material Atttributeごとにサブメッシュを作成
             foreach (var polyPrim in geo.polyPrimitives)
             {
                 // Normals
@@ -274,15 +166,21 @@ namespace NmrgLibrary.HoudiniGeoImporter
                 }
                 submeshInfo[materialName].AddRange(polyPrim.triangles);
             }
-
-            // Assign buffers to mesh
+            
+            // meshのBufferにアタッチ
             mesh.vertices = positions;
             mesh.subMeshCount = submeshInfo.Count;
-            mesh.uv = uvs;
-            mesh.uv2 = uvs2;
             mesh.normals = normals;
             mesh.colors = colors;
             mesh.tangents = tangents;
+            mesh.SetUVs(0, uvs);
+            mesh.SetUVs(1, uvs2);
+            mesh.SetUVs(2, uvs3);
+            mesh.SetUVs(3, uvs4);
+            mesh.SetUVs(4, uvs5);
+            mesh.SetUVs(5, uvs6);
+            mesh.SetUVs(6, uvs7);
+            mesh.SetUVs(7, uvs8);
             
             // Set submesh indexbuffers
             int submeshIndex = 0;
@@ -299,7 +197,6 @@ namespace NmrgLibrary.HoudiniGeoImporter
                     submeshIndices = submeshIndices.Reverse();
                 }
                 mesh.SetIndices(submeshIndices.ToArray(), MeshTopology.Triangles, submeshIndex);
-                
                 submeshIndex++;
             }
 
@@ -384,6 +281,72 @@ namespace NmrgLibrary.HoudiniGeoImporter
                 attr = geo.attributes.FirstOrDefault(a => a.owner == owner && a.type == type && a.name == attrName);
             }
             return (attr != null);
+        }
+        
+                private static void GetAttrib(HoudiniGeo geo, string uvAttribName, out HoudiniGeoAttribute attr, out Vector4[] attrValues)
+        {
+            attr = null;
+            attrValues = null;
+            if (geo.TryGetAttribute(uvAttribName, HoudiniGeoAttributeType.Float, out attr))
+            {
+                attr.GetValues(out attrValues);
+            }
+        }
+        
+        private static void GetAttrib(HoudiniGeo geo, string uvAttribName, out HoudiniGeoAttribute attr, out Vector3[] attrValues)
+        {
+            attr = null;
+            attrValues = null;
+            if (geo.TryGetAttribute(uvAttribName, HoudiniGeoAttributeType.Float, out attr))
+            {
+                attr.GetValues(out attrValues);
+            }
+        }
+        
+        private static void GetAttrib(HoudiniGeo geo, string uvAttribName, out HoudiniGeoAttribute attr, out string[] attrValues)
+        {
+            attr = null;
+            attrValues = null;
+            if (geo.TryGetAttribute(uvAttribName, HoudiniGeoAttributeType.Float, out attr))
+            {
+                attr.GetValues(out attrValues);
+            }
+        }
+        
+        private static void GetAttrib(HoudiniGeo geo, string uvAttribName, out HoudiniGeoAttribute attr, out float[] attrValues)
+        {
+            attr = null;
+            attrValues = null;
+            if (geo.TryGetAttribute(uvAttribName, HoudiniGeoAttributeType.Float, out attr))
+            {
+                attr.GetValues(out attrValues);
+            }
+        }
+        
+        private static void GetAttrib(HoudiniGeo geo, string uvAttribName, out HoudiniGeoAttribute attr, out Color[] attrValues)
+        {
+            attr = null;
+            attrValues = null;
+            if (geo.TryGetAttribute(uvAttribName, HoudiniGeoAttributeType.Float, out attr))
+            {
+                attr.GetValues(out attrValues);
+            }
+        }
+
+        private static T AttribToBuffer<T>(HoudiniGeoAttribute attrib, T[] attrValues, int vertIndex, int pointIndex)
+        {
+            if (attrib == null)
+            {
+                return default(T);
+            }
+            switch (attrib.owner)
+            {
+                case HoudiniGeoAttributeOwner.Vertex:
+                    return attrValues[vertIndex];
+                case HoudiniGeoAttributeOwner.Point:
+                    return attrValues[pointIndex];
+            }
+            return default(T);
         }
         
         private static void GetValues(this HoudiniGeoAttribute attr, out float[] values)
@@ -584,206 +547,7 @@ namespace NmrgLibrary.HoudiniGeoImporter
 
             return type != HoudiniGeoAttributeType.Invalid;
         }
-
-        private static bool TryCreateAttribute(
-            this HoudiniGeo houdiniGeo, string name, HoudiniGeoAttributeType type, int tupleSize,
-            HoudiniGeoAttributeOwner owner, out HoudiniGeoAttribute attribute)
-        {
-            attribute = new HoudiniGeoAttribute {type = type, tupleSize = tupleSize};
         
-            if (attribute == null)
-                return false;
-        
-            attribute.name = name;
-            attribute.owner = owner;
-            
-            houdiniGeo.attributes.Add(attribute);
-            
-            // If we are adding an attribute of an element type that already has elements present, we need to make sure 
-            // that they have default values.
-            if (owner == HoudiniGeoAttributeOwner.Vertex)
-                attribute.AddDefaultValues(houdiniGeo.vertexCount, type, tupleSize);
-            else if (owner == HoudiniGeoAttributeOwner.Point)
-                attribute.AddDefaultValues(houdiniGeo.pointCount, type, tupleSize);
-            else if (owner == HoudiniGeoAttributeOwner.Primitive)
-                attribute.AddDefaultValues(houdiniGeo.primCount, type, tupleSize);
-        
-            return true;
-        }
-
-        private static bool TryCreateAttribute(
-            this HoudiniGeo houdiniGeo, FieldInfo fieldInfo, HoudiniGeoAttributeOwner owner,
-            out HoudiniGeoAttribute attribute)
-        {
-            attribute = null;
-        
-            Type valueType = fieldInfo.FieldType;
-        
-            bool isValid = GetAttributeTypeAndSize(valueType, out HoudiniGeoAttributeType type, out int tupleSize);
-            if (!isValid)
-                return false;
-        
-            return TryCreateAttribute(houdiniGeo, fieldInfo.Name, type, tupleSize, owner, out attribute);
-        }
-
-        private static bool TryGetOrCreateAttribute(this HoudiniGeo houdiniGeo,
-            FieldInfo fieldInfo, HoudiniGeoAttributeOwner owner, out HoudiniGeoAttribute attribute)
-        {
-            bool isValid = GetAttributeTypeAndSize(fieldInfo.FieldType, out HoudiniGeoAttributeType type, out int _);
-            if (!isValid)
-            {
-                attribute = null;
-                return false;
-            }
-        
-            bool existedAlready = houdiniGeo.TryGetAttribute(fieldInfo.Name, type, owner, out attribute);
-            if (existedAlready)
-                return true;
-        
-            return TryCreateAttribute(houdiniGeo, fieldInfo, owner, out attribute);
-        }
-
-        public static bool TryGetGroup(
-            this HoudiniGeo houdiniGeo,
-            string name, HoudiniGeoGroupType groupType, out HoudiniGeoGroup @group)
-        {
-            switch (groupType)
-            {
-                case HoudiniGeoGroupType.Points:
-                    foreach (PointGroup pointGroup in houdiniGeo.pointGroups)
-                    {
-                        if (pointGroup.name == name)
-                        {
-                            group = pointGroup;
-                            return true;
-                        }
-                    }
-                    break;
-                case HoudiniGeoGroupType.Primitives:
-                    foreach (PrimitiveGroup primitiveGroup in houdiniGeo.primitiveGroups)
-                    {
-                        if (primitiveGroup.name == name)
-                        {
-                            group = primitiveGroup;
-                            return true;
-                        }
-                    }
-                    break;
-                case HoudiniGeoGroupType.Edges:
-                    foreach (EdgeGroup edgeGroup in houdiniGeo.edgeGroups)
-                    {
-                        if (edgeGroup.name == name)
-                        {
-                            group = edgeGroup;
-                            return true;
-                        }
-                    }
-                    break;
-                case HoudiniGeoGroupType.Invalid:
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(groupType), groupType, null);
-            }
-        
-            group = null;
-            return false;
-        }
-        
-        private static HoudiniGeoGroupType GetGroupType(Type groupType)
-        {
-            if (groupType == typeof(PointGroup))
-                return HoudiniGeoGroupType.Points;
-            if (groupType == typeof(EdgeGroup))
-                return HoudiniGeoGroupType.Edges;
-            if (groupType == typeof(PrimitiveGroup))
-                return HoudiniGeoGroupType.Primitives;
-            return HoudiniGeoGroupType.Invalid;
-        }
-        
-        public static bool TryGetGroup<GroupType>(
-            this HoudiniGeo houdiniGeo, string name, out GroupType group)
-            where GroupType : HoudiniGeoGroup
-        {
-            HoudiniGeoGroupType groupType = GetGroupType(typeof(GroupType));
-            bool result = houdiniGeo.TryGetGroup(name, groupType, out HoudiniGeoGroup groupBase);
-            if (!result)
-            {
-                group = null;
-                return false;
-            }
-        
-            group = (GroupType)groupBase;
-            return true;
-        }
-        
-        private static bool TryCreateGroup(
-            this HoudiniGeo houdiniGeo, string name, HoudiniGeoGroupType type, out HoudiniGeoGroup group)
-        {
-            switch (type)
-            {
-                case HoudiniGeoGroupType.Points:
-                    PointGroup pointGroup = new PointGroup(name);
-                    group = pointGroup;
-                    houdiniGeo.pointGroups.Add(pointGroup);
-                    return true;
-                case HoudiniGeoGroupType.Primitives:
-                    PrimitiveGroup primitiveGroup = new PrimitiveGroup(name);
-                    group = primitiveGroup;
-                    houdiniGeo.primitiveGroups.Add(primitiveGroup);
-                    return true;
-                case HoudiniGeoGroupType.Edges:
-                    EdgeGroup edgeGroup = new EdgeGroup(name);
-                    group = edgeGroup;
-                    houdiniGeo.edgeGroups.Add(edgeGroup);
-                    return true;
-                case HoudiniGeoGroupType.Invalid:
-                default:
-                    group = null;
-                    return false;
-            }
-        }
-        
-        private static bool TryCreateGroup<GroupType>(
-            this HoudiniGeo houdiniGeo, string name, HoudiniGeoGroupType type, out GroupType group)
-            where GroupType : HoudiniGeoGroup
-        {
-            HoudiniGeoGroupType groupType = GetGroupType(typeof(GroupType));
-            bool result = houdiniGeo.TryCreateGroup(name, groupType, out HoudiniGeoGroup groupBase);
-            if (!result)
-            {
-                group = null;
-                return false;
-            }
-        
-            group = (GroupType)groupBase;
-            return true;
-        }
-        
-        public static bool TryGetOrCreateGroup(this HoudiniGeo houdiniGeo,
-            string name, HoudiniGeoGroupType type, out HoudiniGeoGroup group)
-        {
-            bool existedAlready = houdiniGeo.TryGetGroup(name, type, out group);
-            if (existedAlready)
-                return true;
-        
-            return TryCreateGroup(houdiniGeo, name, type, out group);
-        }
-        
-        public static bool TryGetOrCreateGroup<GroupType>(this HoudiniGeo houdiniGeo,
-            string name, HoudiniGeoGroupType type, out GroupType group)
-            where GroupType : HoudiniGeoGroup
-        {
-            HoudiniGeoGroupType groupType = GetGroupType(typeof(GroupType));
-            bool result = houdiniGeo.TryGetOrCreateGroup(name, groupType, out HoudiniGeoGroup groupBase);
-            if (!result)
-            {
-                group = null;
-                return false;
-            }
-        
-            group = (GroupType)groupBase;
-            return true;
-        }
-
         private static object GetAttributeValue(Type type, HoudiniGeoAttribute attribute, int index)
         {
             if (type == typeof(bool))
