@@ -38,6 +38,46 @@ namespace NmrgLibrary.HoudiniGeoImporter
 
             return mesh;
         }
+
+        internal static Mesh CreatePoints(this HoudiniGeo geo)
+        {
+            var mesh = new Mesh();
+            mesh.name = geo.name;
+            mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+            var pointCount = geo.pointCount;
+            var indices = Enumerable.Range(0, pointCount).ToArray();
+            GetAttrib(geo, geo.POS_ATTR_NAME, out HoudiniGeoAttribute posAttrib, out Vector3[] pos);
+            GetAttrib(geo, geo.COLOR_ATTR_NAME, out HoudiniGeoAttribute colorAttrib, out Color[] color);
+            GetAttrib(geo, geo.NORMAL_ATTR_NAME, out HoudiniGeoAttribute normalAttrib, out Vector3[] normal);
+            GetAttrib(geo, geo.TANGENT_ATTR_NAME, out HoudiniGeoAttribute tangentAttrib, out Vector4[] tangents);
+            GetAttrib(geo, geo.UV1_ATTR_NAME, out HoudiniGeoAttribute uv1Attrib, out Vector4[] uv1);
+            GetAttrib(geo, geo.UV2_ATTR_NAME, out HoudiniGeoAttribute uv2Attrib, out Vector4[] uv2);
+            GetAttrib(geo, geo.UV3_ATTR_NAME, out HoudiniGeoAttribute uv3Attrib, out Vector4[] uv3);
+            GetAttrib(geo, geo.UV4_ATTR_NAME, out HoudiniGeoAttribute uv4Attrib, out Vector4[] uv4);
+            GetAttrib(geo, geo.UV5_ATTR_NAME, out HoudiniGeoAttribute uv5Attrib, out Vector4[] uv5);
+            GetAttrib(geo, geo.UV6_ATTR_NAME, out HoudiniGeoAttribute uv6Attrib, out Vector4[] uv6);
+            GetAttrib(geo, geo.UV7_ATTR_NAME, out HoudiniGeoAttribute uv7Attrib, out Vector4[] uv7);
+            GetAttrib(geo, geo.UV8_ATTR_NAME, out HoudiniGeoAttribute uv8Attrib, out Vector4[] uv8);
+            
+            if (pos != null && posAttrib.owner     == HoudiniGeoAttributeOwner.Point) mesh.vertices = pos;
+            if (color != null && colorAttrib.owner   == HoudiniGeoAttributeOwner.Point) mesh.colors   = color;
+            if (normal != null && normalAttrib.owner  == HoudiniGeoAttributeOwner.Point) mesh.normals  = normal;
+            if (tangents != null && tangentAttrib.owner == HoudiniGeoAttributeOwner.Point) mesh.tangents = tangents;
+            if (uv1 != null && uv1Attrib.owner == HoudiniGeoAttributeOwner.Point) mesh.SetUVs(0, uv1);
+            if (uv2 != null && uv2Attrib.owner == HoudiniGeoAttributeOwner.Point) mesh.SetUVs(1, uv2);
+            if (uv3 != null && uv3Attrib.owner == HoudiniGeoAttributeOwner.Point) mesh.SetUVs(2, uv3);
+            if (uv4 != null && uv4Attrib.owner == HoudiniGeoAttributeOwner.Point) mesh.SetUVs(3, uv4);
+            if (uv5 != null && uv5Attrib.owner == HoudiniGeoAttributeOwner.Point) mesh.SetUVs(4, uv5);
+            if (uv6 != null && uv6Attrib.owner == HoudiniGeoAttributeOwner.Point) mesh.SetUVs(5, uv6);
+            if (uv7 != null && uv7Attrib.owner == HoudiniGeoAttributeOwner.Point) mesh.SetUVs(6, uv7);
+            if (uv8 != null && uv8Attrib.owner == HoudiniGeoAttributeOwner.Point) mesh.SetUVs(7, uv8);
+            
+            mesh.SetIndices(indices, MeshTopology.Points, 0);
+            mesh.bounds = geo.fileInfo.bounds;
+            mesh.ConvertToUnityCoordinates();
+            
+            return mesh;
+        }
         
         public static List<string> GetAttributeNames(this HoudiniGeo geo)
         {
@@ -82,7 +122,7 @@ namespace NmrgLibrary.HoudiniGeoImporter
             GetAttrib(geo, geo.UV1_ATTR_NAME, out HoudiniGeoAttribute uv7Attr, out Vector4[] uv7AttrValues);
             GetAttrib(geo, geo.UV1_ATTR_NAME, out HoudiniGeoAttribute uv8Attr, out Vector4[] uv8AttrValues);
             GetAttrib(geo, geo.NORMAL_ATTR_NAME, out HoudiniGeoAttribute normalAttr, out Vector3[] normalAttrValues);
-            GetAttrib(geo, geo.TANGENT_ATTR_NAME, out HoudiniGeoAttribute tangentAttr, out Vector3[] tangentAttrValues);
+            GetAttrib(geo, geo.TANGENT_ATTR_NAME, out HoudiniGeoAttribute tangentAttr, out Vector4[] tangentAttrValues);
             GetAttrib(geo, geo.MATERIAL_ATTR_NAME, out HoudiniGeoAttribute materialAttr, out string[] materialAttributeValues);
             GetAttrib(geo, geo.COLOR_ATTR_NAME, out HoudiniGeoAttribute colorAttr, out Color[] colorAttrValues);
             GetAttrib(geo, geo.ALPHA_ATTR_NAME, out HoudiniGeoAttribute alphaAttr, out float[] alphaAttrValues);
@@ -283,7 +323,7 @@ namespace NmrgLibrary.HoudiniGeoImporter
             return (attr != null);
         }
         
-                private static void GetAttrib(HoudiniGeo geo, string uvAttribName, out HoudiniGeoAttribute attr, out Vector4[] attrValues)
+        private static void GetAttrib(HoudiniGeo geo, string uvAttribName, out HoudiniGeoAttribute attr, out Vector4[] attrValues)
         {
             attr = null;
             attrValues = null;

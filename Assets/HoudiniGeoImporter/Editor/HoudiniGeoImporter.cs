@@ -10,7 +10,8 @@ namespace NmrgLibrary.HoudiniGeoImporter
     public class HoudiniGeoImporter : ScriptedImporter
     {
         [SerializeField] private List<string> attribNames;
-        [SerializeField] bool reverseWinding = true;
+        [SerializeField] private bool reverseWinding = true;
+        [SerializeField] private bool importAsPoints = false;
 
         [SerializeField] private string posAttribName = "P";
         [SerializeField] private string normalAttribName = "N";
@@ -49,7 +50,15 @@ namespace NmrgLibrary.HoudiniGeoImporter
             var meshRenderer = obj.AddComponent<MeshRenderer>();
             ctx.AddObjectToAsset("obj", obj);
 
-            var mesh = houdiniGeo.CreateMesh();
+            Mesh mesh;
+            if (importAsPoints)
+            {
+                mesh = houdiniGeo.CreatePoints();
+            }
+            else
+            {
+                mesh = houdiniGeo.CreateMesh();
+            }
             meshFilter.mesh = mesh;
             ctx.AddObjectToAsset("mesh", mesh);
             

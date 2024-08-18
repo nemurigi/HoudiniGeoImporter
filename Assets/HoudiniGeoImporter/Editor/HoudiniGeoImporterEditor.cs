@@ -13,6 +13,8 @@ namespace NmrgLibrary.HoudiniGeoImporter
         {
             var reverseWinding = serializedObject.FindProperty("reverseWinding");
             EditorGUILayout.PropertyField(reverseWinding, new GUIContent("Reverse Winding"));
+            var importAsPoints = serializedObject.FindProperty("importAsPoints");
+            EditorGUILayout.PropertyField(importAsPoints, new GUIContent("import As Points"));
 
             var attribNames = List2PopupOptions(serializedObject.FindProperty("attribNames"));
             
@@ -39,12 +41,12 @@ namespace NmrgLibrary.HoudiniGeoImporter
                 AttribLayout(colorAttribNameProp, "Color", attribNames);
                 AttribLayout(uv1AttribNameProp, "UV1", attribNames);
                 AttribLayout(uv2AttribNameProp, "UV2", attribNames);
-                AttribLayout(uv2AttribNameProp, "UV3", attribNames);
-                AttribLayout(uv2AttribNameProp, "UV4", attribNames);
-                AttribLayout(uv2AttribNameProp, "UV5", attribNames);
-                AttribLayout(uv2AttribNameProp, "UV6", attribNames);
-                AttribLayout(uv2AttribNameProp, "UV7", attribNames);
-                AttribLayout(uv2AttribNameProp, "UV8", attribNames);
+                AttribLayout(uv3AttribNameProp, "UV3", attribNames);
+                AttribLayout(uv4AttribNameProp, "UV4", attribNames);
+                AttribLayout(uv5AttribNameProp, "UV5", attribNames);
+                AttribLayout(uv6AttribNameProp, "UV6", attribNames);
+                AttribLayout(uv7AttribNameProp, "UV7", attribNames);
+                AttribLayout(uv8AttribNameProp, "UV8", attribNames);
             }
             EditorGUILayout.EndVertical();
 
